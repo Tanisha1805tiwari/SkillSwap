@@ -1,0 +1,336 @@
+// SkillSwap - Production Prisma Schema
+// PostgreSQL database with full relational model
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USER ────────────────────────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String
+  avatar            String?
+  bio               String?
+  timezone          String    @default("UTC")
+  googleId          String?   @unique
+  passwordHash      String?
+  emailVerified     Boolean   @default(false)
+  isActive          Boolean   @default(true)
+  isBanned          Boolean   @default(false)
+  role              UserRole  @default(USER)
+  credits           Int       @default(5) // 5 free credits on signup
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  skillsOffered     Skill[]              @relation("SkillTeacher")
+  skillsWanted      SkillWant[]
+  sessionsAsTeacher Session[]            @relation("SessionTeacher")
+  sessionsAsLearner Session[]            @relation("SessionLearner")
+  creditTransactions CreditTransaction[]
+  reviewsGiven      Review[]             @relation("ReviewAuthor")
+  reviewsReceived   Review[]             @relation("ReviewTarget")
+  chatMessages      ChatMessage[]
+  availability      Availability[]
+  reports           Report[]             @relation("ReportedBy")
+  reportedUser      Report[]             @relation("ReportedUser")
+  notifications     Notification[]
+
+  @@index([email])
+  @@index([googleId])
+  @@index([role])
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+// ─── SKILL ───────────────────────────────────────────────────────────────────
+
+model Skill {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  category    String
+  level       SkillLevel
+  tags        String[]
+  isActive    Boolean     @default(true)
+  sessionsCount Int       @default(0)
+  rating      Float       @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  teacherId   String
+  teacher     User        @relation("SkillTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  sessions    Session[]
+  wantedBy    SkillWant[]
+
+  @@index([teacherId])
+  @@index([category])
+  @@index([level])
+  @@map("skills")
+}
+
+model SkillWant {
+  id        String   @id @default(cuid())
+  userId    String
+  skillId   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@map("skill_wants")
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+// ─── SESSION ─────────────────────────────────────────────────────────────────
+
+model Session {
+  id            String        @id @default(cuid())
+  title         String
+  status        SessionStatus @default(PENDING)
+  scheduledAt   DateTime
+  startedAt     DateTime?
+  endedAt       DateTime?
+  durationSecs  Int?          // Actual duration in seconds
+  creditAmount  Int           @default(1)
+  notes         String?
+  cancelReason  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  teacherId     String
+  learnerId     String
+  skillId       String
+  videoRoomId   String?
+
+  teacher       User          @relation("SessionTeacher", fields: [teacherId], references: [id])
+  learner       User          @relation("SessionLearner", fields: [learnerId], references: [id])
+  skill         Skill         @relation(fields: [skillId], references: [id])
+  videoRoom     VideoRoom?    @relation(fields: [videoRoomId], references: [id])
+  review        Review?
+  creditTx      CreditTransaction[]
+  chatMessages  ChatMessage[]
+
+  @@index([teacherId])
+  @@index([learnerId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("sessions")
+}
+
+enum SessionStatus {
+  PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ─── VIDEO ROOM ───────────────────────────────────────────────────────────────
+
+model VideoRoom {
+  id              String        @id @default(cuid())
+  roomToken       String        @unique @default(cuid())
+  status          RoomStatus    @default(WAITING)
+  createdAt       DateTime      @default(now())
+  startedAt       DateTime?
+  endedAt         DateTime?
+  maxParticipants Int           @default(2)
+  iceServers      Json?         // Store TURN credentials
+
+  sessions        Session[]
+  participants    RoomParticipant[]
+
+  @@index([roomToken])
+  @@map("video_rooms")
+}
+
+model RoomParticipant {
+  id         String   @id @default(cuid())
+  roomId     String
+  userId     String
+  joinedAt   DateTime @default(now())
+  leftAt     DateTime?
+  socketId   String?
+
+  room       VideoRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@map("room_participants")
+}
+
+enum RoomStatus {
+  WAITING
+  ACTIVE
+  ENDED
+}
+
+// ─── CREDIT TRANSACTION ───────────────────────────────────────────────────────
+
+model CreditTransaction {
+  id          String          @id @default(cuid())
+  amount      Int             // Positive = credit, Negative = debit
+  type        TransactionType
+  description String
+  createdAt   DateTime        @default(now())
+
+  userId      String
+  sessionId   String?
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session     Session?        @relation(fields: [sessionId], references: [id])
+
+  @@index([userId])
+  @@index([sessionId])
+  @@map("credit_transactions")
+}
+
+enum TransactionType {
+  SIGNUP_BONUS
+  SESSION_EARNED
+  SESSION_SPENT
+  REFUND
+  ADMIN_ADJUSTMENT
+  PURCHASE
+}
+
+// ─── REVIEW ───────────────────────────────────────────────────────────────────
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5
+  comment   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessionId String   @unique
+  authorId  String
+  targetId  String
+
+  session   Session  @relation(fields: [sessionId], references: [id])
+  author    User     @relation("ReviewAuthor", fields: [authorId], references: [id])
+  target    User     @relation("ReviewTarget", fields: [targetId], references: [id])
+
+  @@index([targetId])
+  @@index([authorId])
+  @@map("reviews")
+}
+
+// ─── CHAT MESSAGE ─────────────────────────────────────────────────────────────
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String
+  type      MessageType @default(TEXT)
+  createdAt DateTime @default(now())
+
+  sessionId String
+  senderId  String
+
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id])
+
+  @@index([sessionId])
+  @@index([senderId])
+  @@map("chat_messages")
+}
+
+enum MessageType {
+  TEXT
+  SYSTEM
+  FILE
+}
+
+// ─── AVAILABILITY ─────────────────────────────────────────────────────────────
+
+model Availability {
+  id        String   @id @default(cuid())
+  dayOfWeek Int      // 0=Sun, 6=Sat
+  startTime String   // "HH:MM" format
+  endTime   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("availabilities")
+}
+
+// ─── REPORT ───────────────────────────────────────────────────────────────────
+
+model Report {
+  id           String       @id @default(cuid())
+  reason       String
+  description  String
+  status       ReportStatus @default(PENDING)
+  resolution   String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  reportedById String
+  reportedUserId String
+
+  reportedBy   User         @relation("ReportedBy", fields: [reportedById], references: [id])
+  reportedUser User         @relation("ReportedUser", fields: [reportedUserId], references: [id])
+
+  @@index([status])
+  @@map("reports")
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+// ─── NOTIFICATION ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  data      Json?
+  createdAt DateTime         @default(now())
+
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  SESSION_BOOKED
+  SESSION_CONFIRMED
+  SESSION_CANCELLED
+  SESSION_STARTING
+  SESSION_COMPLETED
+  REVIEW_RECEIVED
+  CREDITS_UPDATED
+  SYSTEM
+}

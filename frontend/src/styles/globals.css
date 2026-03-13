@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Clash Display font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    --background: 222 47% 5%;
+    --foreground: 190 100% 97%;
+    --card: 220 40% 8%;
+    --card-foreground: 190 100% 97%;
+    --popover: 220 40% 8%;
+    --popover-foreground: 190 100% 97%;
+    --primary: 189 94% 43%;
+    --primary-foreground: 222 47% 5%;
+    --secondary: 220 35% 12%;
+    --secondary-foreground: 190 100% 90%;
+    --muted: 220 35% 12%;
+    --muted-foreground: 200 20% 60%;
+    --accent: 189 94% 43%;
+    --accent-foreground: 222 47% 5%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 30% 14%;
+    --input: 220 30% 14%;
+    --ring: 189 94% 43%;
+    --radius: 0.75rem;
+
+    /* Custom cyan glow variables */
+    --cyan-glow: rgba(6, 182, 212, 0.15);
+    --cyan-glow-strong: rgba(6, 182, 212, 0.35);
+    --cyan-border: rgba(6, 182, 212, 0.25);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(6, 182, 212, 0.04) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(220 40% 8%);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(6, 182, 212, 0.3);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(6, 182, 212, 0.6);
+  }
+}
+
+@layer components {
+  /* Glassmorphism card */
+  .glass-card {
+    @apply bg-card/60 backdrop-blur-xl border border-cyan-500/10 rounded-xl;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(6, 182, 212, 0.05);
+  }
+
+  /* Cyan glow button */
+  .btn-cyan {
+    @apply bg-cyan-500 text-slate-900 font-semibold hover:bg-cyan-400 transition-all duration-200;
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+  }
+  .btn-cyan:hover {
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.5);
+    transform: translateY(-1px);
+  }
+
+  /* Outlined cyan button */
+  .btn-cyan-outline {
+    @apply border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all duration-200;
+  }
+
+  /* Glow border on focus */
+  .glow-focus {
+    @apply focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50;
+  }
+
+  /* Active session indicator */
+  .live-indicator {
+    @apply inline-flex items-center gap-1.5 text-xs font-medium text-red-400;
+  }
+  .live-indicator::before {
+    content: '';
+    @apply w-2 h-2 rounded-full bg-red-500 animate-pulse;
+  }
+
+  /* Video tile */
+  .video-tile {
+    @apply relative rounded-xl overflow-hidden bg-slate-800 border border-cyan-500/10;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply glass-card p-5 flex flex-col gap-1;
+  }
+
+  /* Neon text */
+  .neon-text {
+    color: #22d3ee;
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.5), 0 0 30px rgba(34, 211, 238, 0.2);
+  }
+
+  /* Skill badge */
+  .skill-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           bg-cyan-500/10 text-cyan-300 border border-cyan-500/20;
+  }
+
+  /* Credit badge */
+  .credit-badge {
+    @apply inline-flex items-center gap-1 px-2 py-1 rounded-md text-sm font-semibold
+           bg-amber-500/10 text-amber-300 border border-amber-500/20;
+  }
+
+  /* Connection quality dot */
+  .quality-good { @apply text-emerald-400; }
+  .quality-fair { @apply text-amber-400; }
+  .quality-poor { @apply text-red-400; }
+}
+
+@layer utilities {
+  .text-gradient-cyan {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-cyan-200;
+  }
+
+  .border-glow-cyan {
+    border-color: rgba(6, 182, 212, 0.4);
+    box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.1), 0 0 20px rgba(6, 182, 212, 0.1);
+  }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+}
