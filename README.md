@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SkillSwap 🚀
 
 > **Peer-to-peer skill exchange platform with live HD video sessions, screen sharing, and a credit-based economy.**
@@ -444,3 +445,6 @@ PATCH  /api/admin/reports/:id
 For issues, open a GitHub issue or contact the team.
 
 Built with ❤️ for lifelong learners.
+=======
+# SkillSwap
+>>>>>>> 5be66c95a7d3df02e4b9ab0a499e4af0b366f16f
